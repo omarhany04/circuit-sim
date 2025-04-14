@@ -521,6 +521,17 @@
             }
         }
 
+        // Rotate selected component
+        function rotateSelected() {
+        if (selectedComponent) {
+            let currentRotation = selectedComponent.style.transform || 'rotate(0deg)';
+            let currentAngle = parseInt(currentRotation.replace('rotate(', '').replace('deg)', ''), 10) || 0;
+            currentAngle += 90;
+            selectedComponent.style.transform = `rotate(${currentAngle}deg)`;
+            updateWires();
+        }
+        }
+        
         // Reset feedback
         function resetFeedback() {
             document.getElementById('voltage').innerText = '0';
