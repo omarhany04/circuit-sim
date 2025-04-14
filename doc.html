@@ -490,21 +490,25 @@
         // Make components draggable from right panel to canvas
         interact('.component').draggable({
     onstart: function (event) {
+       // Only allow dragging if it's from the right-panel, not from canvas
+      if (event.target.closest('#canvas')) {
+            event.interaction.stop(); 
+            return;
+        }
         const type = event.target.dataset.type;
         
         // Create a clone to follow the cursor
-        const clone = document.createElement('div');
-        clone.className = 'draggable';
-        clone.innerHTML = event.target.innerHTML;
-        clone.dataset.type = type;
-        clone.style.left = event.clientX + 'px';
-        clone.style.top = event.clientY + 'px';
-        clone.style.pointerEvents = 'none'; // Prevent accidental click events during drag
+        const original = event.target.cloneNode(true);
+        original.classList.remove('component'); 
+        original.classList.add('draggable'); 
+        original.style.position = 'absolute';
+        original.style.pointerEvents = 'none';
+        original.style.left = event.clientX + 'px';
+        original.style.top = event.clientY + 'px';
 
-        document.body.appendChild(clone); // Temporary append to body
+        event.interaction.clone = original;
+        document.body.appendChild(original);
 
-        // Attach the clone to event for access in onmove and onend
-        event.interaction.clone = clone;
     },
     onmove: function (event) {
         const clone = event.interaction.clone;
