@@ -246,24 +246,32 @@
     </details>
     <details class="mb-2"><summary class="font-bold cursor-pointer">Integrated Components</summary>
         <div class="grid grid-cols-2 gap-2 mt-2">
-            <div class="component bg-gray-300" data-type="Arduino" title="Arduino">
-                <svg width="40" height="40">
-                  <rect x="5" y="5" width="30" height="30" fill="#007BFF" rx="2"/>
-                  <rect x="15" y="15" width="10" height="10" fill="#222"/> 
-                  <rect x="6" y="6" width="2" height="4" fill="#000"/>
-                  <rect x="10" y="6" width="2" height="4" fill="#000"/>
-                  <rect x="14" y="6" width="2" height="4" fill="#000"/>
-                  <rect x="18" y="6" width="2" height="4" fill="#000"/>
-                  <rect x="22" y="6" width="2" height="4" fill="#000"/>
-                  <rect x="6" y="30" width="2" height="4" fill="#000"/>
-                  <rect x="10" y="30" width="2" height="4" fill="#000"/>
-                  <rect x="14" y="30" width="2" height="4" fill="#000"/>
-                  <rect x="18" y="30" width="2" height="4" fill="#000"/>
-                  <rect x="22" y="30" width="2" height="4" fill="#000"/>
-                  <circle cx="28" cy="12" r="2" fill="white"/>
+            <div class="component bg-gray-300" data-type="Arduino" title="Arduino UNO">
+                <svg width="60" height="40" viewBox="0 0 100 60">
+                  <rect x="5" y="5" width="90" height="50" fill="#007BFF" rx="4"/>
+                  <rect x="40" y="20" width="20" height="15" fill="#222"/>
+                  <rect x="5" y="15" width="8" height="15" fill="#bbb"/>
+                  <rect x="7" y="18" width="4" height="9" fill="#888"/>
+                  <rect x="5" y="35" width="8" height="10" fill="#444"/>
+                  <rect x="15" y="8" width="2" height="5" fill="#000"/>
+                  <rect x="19" y="8" width="2" height="5" fill="#000"/>
+                  <rect x="23" y="8" width="2" height="5" fill="#000"/>
+                  <rect x="27" y="8" width="2" height="5" fill="#000"/>
+                  <rect x="31" y="8" width="2" height="5" fill="#000"/>
+                  <rect x="35" y="8" width="2" height="5" fill="#000"/>
+                  <rect x="39" y="8" width="2" height="5" fill="#000"/>
+                  <rect x="43" y="8" width="2" height="5" fill="#000"/>
+                  <rect x="15" y="47" width="2" height="5" fill="#000"/>
+                  <rect x="19" y="47" width="2" height="5" fill="#000"/>
+                  <rect x="23" y="47" width="2" height="5" fill="#000"/>
+                  <rect x="27" y="47" width="2" height="5" fill="#000"/>
+                  <rect x="31" y="47" width="2" height="5" fill="#000"/>
+                  <rect x="35" y="47" width="2" height="5" fill="#000"/>
+                  <circle cx="85" cy="10" r="3" fill="#ff6666"/>
+                  <circle cx="15" cy="40" r="2" fill="#999"/>
+                  <circle cx="20" cy="40" r="2" fill="#999"/>
                 </svg>
               </div>
-              
         </div>
     </details>
     <details class="mb-2"><summary class="font-bold cursor-pointer">Sensors</summary>
@@ -276,8 +284,26 @@
     <details class="mb-2"><summary class="font-bold cursor-pointer">Prototyping Tools</summary>
         <div class="grid grid-cols-2 gap-2 mt-2">
             <div class="component bg-gray-300" data-type="Breadboard" title="Breadboard">
-                <svg width="40" height="40"><rect x="5" y="5" width="30" height="30" fill="#888"/><rect x="10" y="10" width="20" height="5" fill="white"/></svg>
-            </div>
+                <svg width="40" height="40">
+                  <rect x="2" y="2" width="36" height="36" rx="4" fill="#bbb" stroke="#888" stroke-width="1" />
+                  <rect x="18" y="2" width="4" height="36" fill="#fff" />
+                  <circle cx="8" cy="8" r="1.2" fill="#333"/>
+                  <circle cx="8" cy="14" r="1.2" fill="#333"/>
+                  <circle cx="8" cy="20" r="1.2" fill="#333"/>
+                  <circle cx="8" cy="26" r="1.2" fill="#333"/>
+                  <circle cx="8" cy="32" r="1.2" fill="#333"/>
+                  <circle cx="32" cy="8" r="1.2" fill="#333"/>
+                  <circle cx="32" cy="14" r="1.2" fill="#333"/>
+                  <circle cx="32" cy="20" r="1.2" fill="#333"/>
+                  <circle cx="32" cy="26" r="1.2" fill="#333"/>
+                  <circle cx="32" cy="32" r="1.2" fill="#333"/>
+                 <line x1="4" y1="4" x2="4" y2="36" stroke="blue" stroke-width="0.8"/>
+                 <line x1="14" y1="4" x2="14" y2="36" stroke="red" stroke-width="0.8"/>
+                 <line x1="26" y1="4" x2="26" y2="36" stroke="blue" stroke-width="0.8"/>
+                 <line x1="36" y1="4" x2="36" y2="36" stroke="red" stroke-width="0.8"/>
+                </svg>
+              </div>
+            
         </div>
     </details>
     <details class="mb-2"><summary class="font-bold cursor-pointer">Communication Modules</summary>
@@ -378,53 +404,76 @@
         }
     },
     onend: function (event) {
-        const clone = event.interaction.clone;
-        if (!clone) return;
+    const clone = event.interaction.clone;
+    if (!clone) return;
 
-        // Get canvas bounding box to validate drop location
-        const canvasRect = canvas.getBoundingClientRect();
-        const x = event.clientX;
-        const y = event.clientY;
+    // Get canvas bounding box to validate drop location
+    const canvasRect = canvas.getBoundingClientRect();
+    const x = event.clientX;
+    const y = event.clientY;
 
-        if (
-            x >= canvasRect.left &&
-            x <= canvasRect.right &&
-            y >= canvasRect.top &&
-            y <= canvasRect.bottom
-        ) {
-            // Valid drop: move clone inside canvas and set absolute position
-            clone.style.pointerEvents = 'auto';
-            clone.style.position = 'absolute';
-            clone.style.left = `${x - canvasRect.left - 30}px`;
-            clone.style.top = `${y - canvasRect.top - 30}px`;
-            canvas.appendChild(clone);
+    if (
+        x >= canvasRect.left &&
+        x <= canvasRect.right &&
+        y >= canvasRect.top &&
+        y <= canvasRect.bottom
+    ) {
+        // Valid drop: move clone inside canvas and set absolute position
+        clone.style.pointerEvents = 'auto';
+        clone.style.position = 'absolute';
+        clone.style.left = `${x - canvasRect.left - 30}px`;
+        clone.style.top = `${y - canvasRect.top - 30}px`;
+        canvas.appendChild(clone);
 
-            // Add connection points
-            const point1 = document.createElement('div');
-            point1.className = 'connection-point';
-            point1.style.left = '0px';
-            point1.style.top = '25px';
-            clone.appendChild(point1);
+        // Create all 4 connection points
+        const topPoint = document.createElement('div');
+        topPoint.className = 'connection-point';
+        topPoint.style.left = '26px';
+        topPoint.style.top = '-4px';
 
-            const point2 = document.createElement('div');
-            point2.className = 'connection-point';
-            point2.style.right = '0px';
-            point2.style.top = '25px';
-            clone.appendChild(point2);
+        const bottomPoint = document.createElement('div');
+        bottomPoint.className = 'connection-point';
+        bottomPoint.style.left = '26px';
+        bottomPoint.style.bottom = '-4px';
 
-            components.push({ element: clone, type: clone.dataset.type, points: [point1, point2] });
-            makeDraggable(clone);
-            addConnectionListeners(point1, point2);
-            addSelectionListener(clone);
-        }
+        const leftPoint = document.createElement('div');
+        leftPoint.className = 'connection-point';
+        leftPoint.style.left = '-4px';
+        leftPoint.style.top = '25px';
 
-        // Cleanup the original floating clone from body if it wasn't added to canvas
-        if (clone.parentElement !== canvas) {
-            clone.remove();
-        }
+        const rightPoint = document.createElement('div');
+        rightPoint.className = 'connection-point';
+        rightPoint.style.right = '-4px';
+        rightPoint.style.top = '25px';
 
-        delete event.interaction.clone;
-             }
+        // Append to component
+        clone.appendChild(topPoint);
+        clone.appendChild(bottomPoint);
+        clone.appendChild(leftPoint);
+        clone.appendChild(rightPoint);
+
+        // Track in components array
+        const newComponent = {
+            element: clone,
+            type: clone.dataset.type,
+            points: [topPoint, bottomPoint, leftPoint, rightPoint]
+        };
+        components.push(newComponent);
+
+        // Add interactivity
+        makeDraggable(clone);
+        addConnectionListeners(...newComponent.points);
+        addSelectionListener(clone);
+    }
+
+    // Cleanup floating clone if it wasn’t dropped inside canvas
+    if (clone.parentElement !== canvas) {
+        clone.remove();
+    }
+
+    delete event.interaction.clone;
+}
+
         });
 
 
@@ -471,22 +520,31 @@
 
         
         // Handle connections
-        function addConnectionListeners(point1, point2) {
-            [point1, point2].forEach(point => {
-                point.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    if (!selectedPoint) {
-                        selectedPoint = point;
-                        point.style.background = 'blue';
-                    } else if (selectedPoint !== point) {
-                        drawWire(selectedPoint, point);
-                        selectedPoint.style.background = 'red';
-                        selectedPoint = null;
-                        if (isSimulating) updateSimulation();
-                    }
-                });
-            });
-        }
+        function addConnectionListeners(...points) {
+    points.forEach(point => {
+        point.addEventListener('click', (e) => {
+            e.stopPropagation();
+
+            if (!selectedPoint) {
+                selectedPoint = point;
+                point.style.background = 'blue';
+
+                // Start drawing wire preview
+                startWirePreview(point);
+            } else if (selectedPoint !== point) {
+                drawWire(selectedPoint, point);
+                selectedPoint.style.background = 'red';
+                selectedPoint = null;
+
+                // Stop preview
+                stopWirePreview();
+
+                if (isSimulating) updateSimulation();
+            }
+        });
+    });
+}
+
 
         // Draw wire between two points
         function drawWire(startPoint, endPoint) {
