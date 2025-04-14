@@ -6,6 +6,12 @@
     <title>Circuit Simulator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        .draggable, .component, .connection-point, #canvas {
+        user-select: none;
+        -webkit-user-select: none; /* For Safari */
+        -ms-user-select: none;     /* For IE/Edge */
+        }
+
         body {
             margin: 0;
             font-family: Arial, sans-serif;
@@ -347,34 +353,80 @@
 
         // Make components draggable from right panel to canvas
         interact('.component').draggable({
-            onstart: function (event) {
-                const type = event.target.dataset.type;
-                const clone = document.createElement('div');
-                clone.className = 'draggable';
-                clone.innerHTML = event.target.innerHTML;
-                clone.style.left = `${event.clientX - 30}px`;
-                clone.style.top = `${event.clientY - 30}px`;
-                clone.dataset.type = type;
-                canvas.appendChild(clone);
+    onstart: function (event) {
+        const type = event.target.dataset.type;
 
-                const point1 = document.createElement('div');
-                point1.className = 'connection-point';
-                point1.style.left = '0px';
-                point1.style.top = '25px';
-                clone.appendChild(point1);
+        // Create a clone to follow the cursor
+        const clone = document.createElement('div');
+        clone.className = 'draggable';
+        clone.innerHTML = event.target.innerHTML;
+        clone.dataset.type = type;
+        clone.style.left = event.clientX + 'px';
+        clone.style.top = event.clientY + 'px';
+        clone.style.pointerEvents = 'none'; // Prevent accidental click events during drag
 
-                const point2 = document.createElement('div');
-                point2.className = 'connection-point';
-                point2.style.right = '0px';
-                point2.style.top = '25px';
-                clone.appendChild(point2);
+        document.body.appendChild(clone); // Temporary append to body
 
-                components.push({ element: clone, type, points: [point1, point2] });
-                makeDraggable(clone);
-                addConnectionListeners(point1, point2);
-                addSelectionListener(clone);
-            }
+        // Attach the clone to event for access in onmove and onend
+        event.interaction.clone = clone;
+    },
+    onmove: function (event) {
+        const clone = event.interaction.clone;
+        if (clone) {
+            clone.style.left = `${event.clientX - 30}px`;
+            clone.style.top = `${event.clientY - 30}px`;
+        }
+    },
+    onend: function (event) {
+        const clone = event.interaction.clone;
+        if (!clone) return;
+
+        // Get canvas bounding box to validate drop location
+        const canvasRect = canvas.getBoundingClientRect();
+        const x = event.clientX;
+        const y = event.clientY;
+
+        if (
+            x >= canvasRect.left &&
+            x <= canvasRect.right &&
+            y >= canvasRect.top &&
+            y <= canvasRect.bottom
+        ) {
+            // Valid drop: move clone inside canvas and set absolute position
+            clone.style.pointerEvents = 'auto';
+            clone.style.position = 'absolute';
+            clone.style.left = `${x - canvasRect.left - 30}px`;
+            clone.style.top = `${y - canvasRect.top - 30}px`;
+            canvas.appendChild(clone);
+
+            // Add connection points
+            const point1 = document.createElement('div');
+            point1.className = 'connection-point';
+            point1.style.left = '0px';
+            point1.style.top = '25px';
+            clone.appendChild(point1);
+
+            const point2 = document.createElement('div');
+            point2.className = 'connection-point';
+            point2.style.right = '0px';
+            point2.style.top = '25px';
+            clone.appendChild(point2);
+
+            components.push({ element: clone, type: clone.dataset.type, points: [point1, point2] });
+            makeDraggable(clone);
+            addConnectionListeners(point1, point2);
+            addSelectionListener(clone);
+        }
+
+        // Cleanup the original floating clone from body if it wasn't added to canvas
+        if (clone.parentElement !== canvas) {
+            clone.remove();
+        }
+
+        delete event.interaction.clone;
+             }
         });
+
 
         // Make placed components draggable
         function makeDraggable(element) {
