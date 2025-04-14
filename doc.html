@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Circuit Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #toolbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: #333;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        #left-panel {
+            width: 200px;
+            background: #f0f0f0;
+            padding: 10px;
+            border-right: 1px solid #ccc;
+            margin-top: 50px;
+        }
+        #canvas {
+            flex-grow: 1;
+            background: #fff;
+            position: relative;
+            overflow: auto;
+            margin-top: 50px;
+        }
+        #right-panel {
+            width: 200px;
+            background: #e0e0e0;
+            padding: 10px;
+            border-left: 1px solid #ccc;
+            margin-top: 50px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .component {
+            width: 60px;
+            height: 60px;
+            background: #ddd;
+            cursor: move;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #999;
+        }
+        .draggable {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #999;
+            z-index: 10;
+        }
+        .selected {
+            border: 3px solid blue;
+        }
+        .connection-point {
+            width: 8px;
+            height: 8px;
+            background: red;
+            border-radius: 50%;
+            position: absolute;
+            cursor: pointer;
+        }
+        .wire {
+            position: absolute;
+            background: black;
+            height: 2px;
+            transform-origin: 0 0;
+        }
+        #feedback {
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        button, select {
+            margin: 5px 0;
+            width: 100%;
+            padding: 5px;
+        }
+        #timer {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        @media (max-width: 800px) {
+            #left-panel, #right-panel {
+                width: 150px;
+            }
+            #right-panel {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body >
+    <div id="toolbar" class="fixed top-0 w-full bg-gray-800 text-white p-4 flex justify-center gap-4 z-50">
+        <button onclick="newCircuit()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">New Circuit</button>
+        <button onclick="saveCircuit()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Save Circuit</button>
+        <button onclick="loadCircuit()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Load Circuit</button>
+        <button onclick="deleteSelected()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Delete</button>
+    </div>
+    <div id="left-panel" class="w-64 bg-white p-4 overflow-y-auto border-r border-gray-300">
+        <button onclick="startSimulation()" class="bg-green-600 hover:bg-green-700 text-white w-full py-2 mb-2 rounded">▶️ Start</button>
+        <button onclick="stopSimulation()" class="bg-red-600 hover:bg-red-700 text-white w-full py-2 mb-2 rounded">⏹️ Stop</button>
+        <button onclick="rotateSelected()" class="bg-yellow-600 hover:bg-yellow-700 text-white w-full py-2 mb-2 rounded">🔄 Rotate</button>
+        <select id="mode" onchange="changeMode()" class="w-full p-2 mb-2 border rounded">
+            <option value="DC">DC</option>
+            <option value="AC">AC</option>
+        </select>
+        <div id="feedback" class="mt-4 text-sm">
+            Voltage: <span id="voltage" class="font-bold">0</span> V<br>
+            Current: <span id="current" class="font-bold">0</span> A<br>
+            Power: <span id="power" class="font-bold">0</span> W<br>
+            Resistance: <span id="resistance" class="font-bold">0</span> Ω
+        </div>
+        <div id="timer" class="mt-2 text-sm">Elapsed Time: <span id="elapsed">0</span> s</div>
+        <div class="mt-4 p-2 bg-gray-300 border-t border-gray-300 text-sm text-gray-700 rounded-md">
+          <h2 class="font-semibold mb-1">Instructions</h2>
+          <ul class="list-disc list-inside space-y-1">
+            <li>Drag components from the right panel to the canvas.</li>
+            <li>Click red dots to create wires between components.</li>
+            <li>Select a component to move or delete it.</li>
+            <li>Use the top toolbar to run the simulation.</li>
+            <li>Save or load circuits using the toolbar options.</li>
+          </ul>
+        </div>
+      </div>
+    <div id="canvas" class="flex-1 bg-white relative overflow-auto"></div>
+    <div id="right-panel" class="w-64 bg-gray-200 p-4 border-l border-gray-300 overflow-y-auto">
+      <details class="mb-2"><summary class="font-bold cursor-pointer">Power Sources</summary>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+            <div class="component bg-gray-300" data-type="battery" title="Battery">
+                <svg width="40" height="40"><rect x="10" y="10" width="20" height="20" fill="#888"/><text x="15" y="25" fill="white">+</text><text x="25" y="25" fill="white">-</text></svg>
+            </div>
+        </div>
+    </details>
+    <details class="mb-2"><summary class="font-bold cursor-pointer">Passive Components</summary>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+            <div class="component bg-gray-300" data-type="resistor" title="Resistor">
+                <svg width="40" height="40"><rect x="10" y="15" width="20" height="10" fill="#888"/></svg>
+            </div>
+            <div class="component bg-gray-300" data-type="capacitor" title="Capacitor">
+                <svg width="40" height="40"><line x1="20" y1="10" x2="20" y2="30" stroke="#888" stroke-width="2"/><line x1="15" y1="20" x2="25" y2="20" stroke="#888" stroke-width="2"/></svg>
+            </div>
+            <div class="component bg-gray-300" data-type="inductor" title="Inductor">
+                <svg width="40" height="40"><path d="M10 20 Q15 10 20 20 Q25 30 30 20" stroke="#888" stroke-width="2" fill="none"/></svg>
+            </div>
+        </div>
+    </details>
+    <details class="mb-2"><summary class="font-bold cursor-pointer">Switches & Controls</summary>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+            <div class="component bg-gray-300" data-type="switch" title="Switch">
+                <svg width="40" height="40"><line x1="10" y1="20" x2="20" y2="20" stroke="#888" stroke-width="2"/><line x1="20" y1="20" x2="30" y2="10" stroke="#888" stroke-width="2"/></svg>
+            </div>
+            <div class="component bg-gray-300" data-type="button" title="Button">
+                <svg width="40" height="40"><rect x="10" y="10" width="20" height="20" fill="#888" rx="5"/></svg>
+            </div>
+        </div>
+    </details>
+    <details class="mb-2"><summary class="font-bold cursor-pointer">Output Devices</summary>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+            <div class="component bg-gray-300" data-type="led" title="LED">
+                <svg width="40" height="40"><circle cx="20" cy="20" r="10" fill="#888"/><path d="M20 10 L25 5 M20 10 L15 5" stroke="red" stroke-width="2"/></svg>
+            </div>
+        </div>
+    </details>
+    <details class="mb-2"><summary class="font-bold cursor-pointer">Integrated Components</summary>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+            <div class="component bg-gray-300" data-type="arduino" title="Arduino">
+                <svg width="40" height="40"><rect x="5" y="5" width="30" height="30" fill="#888"/><rect x="10" y="10" width="5" height="5" fill="white"/></svg>
+            </div>
+        </div>
+    </details>
+    <details class="mb-2"><summary class="font-bold cursor-pointer">Sensors</summary>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+            <div class="component bg-gray-300" data-type="sensor" title="Sensor">
+                <svg width="40" height="40"><circle cx="20" cy="20" r="15" fill="#888"/><circle cx="20" cy="20" r="5" fill="white"/></svg>
+            </div>
+        </div>
+    </details>
+    <details class="mb-2"><summary class="font-bold cursor-pointer">Prototyping Tools</summary>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+            <div class="component bg-gray-300" data-type="breadboard" title="Breadboard">
+                <svg width="40" height="40"><rect x="5" y="5" width="30" height="30" fill="#888"/><rect x="10" y="10" width="20" height="5" fill="white"/></svg>
+            </div>
+        </div>
+    </details>
+    <!-- Placeholder categories -->
+    <details class="mb-2"><summary class="font-bold cursor-pointer">Communication Modules</summary><div class="text-sm mt-2">None yet</div></details>
+    <details class="mb-2"><summary class="font-bold cursor-pointer">Connectors & Cables</summary><div class="text-sm mt-2">None yet</div></details>
+    <details class="mb-2"><summary class="font-bold cursor-pointer">Power Management</summary><div class="text-sm mt-2">None yet</div></details>
+    <details class="mb-2"><summary class="font-bold cursor-pointer">Ground </summary><div class="text-sm mt-2">None yet</div></details>
+    <details class="mb-2"><summary class="font-bold cursor-pointer">Diodes</summary><div class="text-sm mt-2">None yet</div></details>
+</div>
+</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+    <script>
+        const canvas = document.getElementById('canvas');
+        let isSimulating = false;
+        let isDC = true;
+        let components = [];
+        let wires = [];
+        let selectedPoint = null;
+        let selectedComponent = null;
+        let startTime = null;
+
+        // Make components draggable from right panel to canvas
+        interact('.component').draggable({
+            onstart: function (event) {
+                const type = event.target.dataset.type;
+                const clone = document.createElement('div');
+                clone.className = 'draggable';
+                clone.innerHTML = event.target.innerHTML;
+                clone.style.left = `${event.clientX - 30}px`;
+                clone.style.top = `${event.clientY - 30}px`;
+                canvas.appendChild(clone);
+
+                const point1 = document.createElement('div');
+                point1.className = 'connection-point';
+                point1.style.left = '0px';
+                point1.style.top = '25px';
+                clone.appendChild(point1);
+
+                const point2 = document.createElement('div');
+                point2.className = 'connection-point';
+                point2.style.right = '0px';
+                point2.style.top = '25px';
+                clone.appendChild(point2);
+
+                components.push({ element: clone, type, points: [point1, point2] });
+                makeDraggable(clone);
+                addConnectionListeners(point1, point2);
+                addSelectionListener(clone);
+            }
+        });
+
+        // Make placed components draggable
+        function makeDraggable(element) {
+            interact(element).draggable({
+                onmove: function (event) {
+                    const target = event.target;
+                    const x = (parseFloat(target.style.left) || 0) + event.dx;
+                    const y = (parseFloat(target.style.top) || 0) + event.dy;
+                    target.style.left = `${x}px`;
+                    target.style.top = `${y}px`;
+                    updateWires();
+                    if (isSimulating) updateSimulation();
+                }
+            });
+        }
+
+        // Add selection listener
+        function addSelectionListener(element) {
+            element.addEventListener('click', () => {
+                if (selectedComponent) selectedComponent.classList.remove('selected');
+                selectedComponent = element;
+                element.classList.add('selected');
+            });
+        }
+
+        // Handle connections
+        function addConnectionListeners(point1, point2) {
+            [point1, point2].forEach(point => {
+                point.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (!selectedPoint) {
+                        selectedPoint = point;
+                        point.style.background = 'blue';
+                    } else if (selectedPoint !== point) {
+                        drawWire(selectedPoint, point);
+                        selectedPoint.style.background = 'red';
+                        selectedPoint = null;
+                        if (isSimulating) updateSimulation();
+                    }
+                });
+            });
+        }
+
+        // Draw wire between two points
+        function drawWire(startPoint, endPoint) {
+            const wire = document.createElement('div');
+            wire.className = 'wire';
+            canvas.appendChild(wire);
+
+            const startRect = startPoint.getBoundingClientRect();
+            const endRect = endPoint.getBoundingClientRect();
+            const canvasRect = canvas.getBoundingClientRect();
+
+            const x1 = startRect.left - canvasRect.left + startRect.width / 2;
+            const y1 = startRect.top - canvasRect.top + startRect.height / 2;
+            const x2 = endRect.left - canvasRect.left + endRect.width / 2;
+            const y2 = endRect.top - canvasRect.top + endRect.height / 2;
+
+            const length = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+            const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+
+            wire.style.width = `${length}px`;
+            wire.style.left = `${x1}px`;
+            wire.style.top = `${y1}px`;
+            wire.style.transform = `rotate(${angle}deg)`;
+
+            wires.push({ element: wire, start: startPoint, end: endPoint });
+        }
+
+        // Update wire positions
+        function updateWires() {
+            wires.forEach(wire => {
+                const startRect = wire.start.getBoundingClientRect();
+                const endRect = wire.end.getBoundingClientRect();
+                const canvasRect = canvas.getBoundingClientRect();
+
+                const x1 = startRect.left - canvasRect.left + startRect.width / 2;
+                const y1 = startRect.top - canvasRect.top + startRect.height / 2;
+                const x2 = endRect.left - canvasRect.left + endRect.width / 2;
+                const y2 = endRect.top - canvasRect.top + endRect.height / 2;
+
+                const length = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+                const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+
+                wire.element.style.width = `${length}px`;
+                wire.element.style.left = `${x1}px`;
+                wire.element.style.top = `${y1}px`;
+                wire.element.style.transform = `rotate(${angle}deg)`;
+            });
+        }
+
+        // Start simulation
+        function startSimulation() {
+            if (!isSimulating) {
+                isSimulating = true;
+                startTime = Date.now();
+                updateSimulation();
+            }
+        }
+
+        // Stop simulation
+        function stopSimulation() {
+            isSimulating = false;
+        }
+
+        // Change mode
+        function changeMode() {
+            isDC = document.getElementById('mode').value === 'DC';
+            if (isSimulating) updateSimulation();
+        }
+
+        // Update simulation
+        function updateSimulation() {
+            if (!isSimulating) return;
+
+            let totalResistance = components.filter(c => c.type === 'resistor').length * 10;
+            totalResistance += components.filter(c => c.type === 'capacitor').length * 5;
+            totalResistance += components.filter(c => c.type === 'inductor').length * 15;
+            let voltage = components.filter(c => c.type === 'battery').length * 9;
+            let current = totalResistance ? voltage / totalResistance : 0;
+            let power = voltage * current;
+
+            document.getElementById('voltage').innerText = voltage.toFixed(2);
+            document.getElementById('current').innerText = current.toFixed(2);
+            document.getElementById('power').innerText = power.toFixed(2);
+            document.getElementById('resistance').innerText = totalResistance.toFixed(2);
+
+            if (startTime) {
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                document.getElementById('elapsed').innerText = elapsed;
+            }
+
+            requestAnimationFrame(updateSimulation);
+        }
+
+        // New circuit
+        function newCircuit() {
+            components.forEach(c => c.element.remove());
+            wires.forEach(w => w.element.remove());
+            components = [];
+            wires = [];
+            selectedComponent = null;
+            selectedPoint = null;
+            stopSimulation();
+            resetFeedback();
+        }
+
+        // Save circuit
+        function saveCircuit() {
+            const circuit = components.map(c => ({
+                type: c.type,
+                x: c.element.style.left,
+                y: c.element.style.top
+            }));
+            localStorage.setItem('circuit', JSON.stringify(circuit));
+            alert('Circuit saved!');
+        }
+
+        // Load circuit
+        function loadCircuit() {
+            const saved = localStorage.getItem('circuit');
+            if (saved) {
+                newCircuit();
+                const circuit = JSON.parse(saved);
+                circuit.forEach(data => {
+                    const clone = document.createElement('div');
+                    clone.className = 'draggable';
+                    clone.innerHTML = document.querySelector(`.component[data-type="${data.type}"]`).innerHTML;
+                    clone.style.left = data.x;
+                    clone.style.top = data.y;
+                    canvas.appendChild(clone);
+
+                    const point1 = document.createElement('div');
+                    point1.className = 'connection-point';
+                    point1.style.left = '0px';
+                    point1.style.top = '25px';
+                    clone.appendChild(point1);
+
+                    const point2 = document.createElement('div');
+                    point2.className = 'connection-point';
+                    point2.style.right = '0px';
+                    point2.style.top = '25px';
+                    clone.appendChild(point2);
+
+                    components.push({ element: clone, type: data.type, points: [point1, point2] });
+                    makeDraggable(clone);
+                    addConnectionListeners(point1, point2);
+                    addSelectionListener(clone);
+                });
+                alert('Circuit loaded!');
+            }
+        }
+
+        // Delete selected component
+        function deleteSelected() {
+            if (selectedComponent) {
+                const index = components.findIndex(c => c.element === selectedComponent);
+                if (index !== -1) {
+                    components.splice(index, 1);
+                    selectedComponent.remove();
+                    wires = wires.filter(w => w.start.parentElement !== selectedComponent && w.end.parentElement !== selectedComponent);
+                    wires.forEach(w => { if (!w.element.parentElement) w.element.remove(); });
+                    selectedComponent = null;
+                    if (isSimulating) updateSimulation();
+                }
+            }
+        }
+
+        // Reset feedback
+        function resetFeedback() {
+            document.getElementById('voltage').innerText = '0';
+            document.getElementById('current').innerText = '0';
+            document.getElementById('power').innerText = '0';
+            document.getElementById('resistance').innerText = '0';
+            document.getElementById('elapsed').innerText = '0';
+        }
+    </script>
+</body>
+</html>
