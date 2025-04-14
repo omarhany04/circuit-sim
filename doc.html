@@ -31,7 +31,8 @@
             background: #f0f0f0;
             padding: 10px;
             border-right: 1px solid #ccc;
-            margin-top: 50px;
+            margin-top: 85px;
+            gap: 10px;
         }
         #canvas {
             flex-grow: 1;
@@ -45,7 +46,7 @@
             background: #e0e0e0;
             padding: 10px;
             border-left: 1px solid #ccc;
-            margin-top: 50px;
+            margin-top: 85px;
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
@@ -112,26 +113,57 @@
     </style>
 </head>
 <body >
-    <div id="toolbar" class="fixed top-0 w-full bg-gray-800 text-white p-4 flex justify-center gap-4 z-50">
-        <button onclick="newCircuit()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">New Circuit</button>
-        <button onclick="saveCircuit()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Save Circuit</button>
-        <button onclick="loadCircuit()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Load Circuit</button>
-        <button onclick="deleteSelected()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Delete</button>
-    </div>
+    <div id="toolbar" class="fixed top-0 w-full bg-gray-800 text-white p-4 flex justify-between items-center z-50">
+        <div class="flex gap-2 items-center">
+          <button onclick="startSimulation()" title="Start" class="bg-green-600 hover:bg-green-700 text-white p-2 rounded-full shadow-lg">
+            Start▶️
+          </button>
+          <button onclick="stopSimulation()" title="Stop" class="bg-red-600 hover:bg-red-700 text-white p-2 rounded-full shadow-lg">
+            Stop⏹️
+          </button>
+          <button onclick="rotateSelected()" title="Rotate" class="bg-yellow-500 hover:bg-yellow-600 text-white p-2 rounded-full shadow-lg">
+            Rotate🔄
+          </button>
+        </div>
+        <div class="flex gap-4">
+          <button onclick="newCircuit()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">New Circuit</button>
+          <button onclick="saveCircuit()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Save Circuit</button>
+          <button onclick="loadCircuit()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Load Circuit</button>
+          <button onclick="deleteSelected()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Delete</button>
+        </div>
+      </div>
+      
     <div id="left-panel" class="w-64 bg-white p-4 overflow-y-auto border-r border-gray-300">
-        <button onclick="startSimulation()" class="bg-green-600 hover:bg-green-700 text-white w-full py-2 mb-2 rounded">▶️ Start</button>
-        <button onclick="stopSimulation()" class="bg-red-600 hover:bg-red-700 text-white w-full py-2 mb-2 rounded">⏹️ Stop</button>
-        <button onclick="rotateSelected()" class="bg-yellow-600 hover:bg-yellow-700 text-white w-full py-2 mb-2 rounded">🔄 Rotate</button>
         <select id="mode" onchange="changeMode()" class="w-full p-2 mb-2 border rounded">
             <option value="DC">DC</option>
             <option value="AC">AC</option>
         </select>
-        <div id="feedback" class="mt-4 text-sm">
+        <div id="feedback" class="hidden mt-4 text-sm"> 
             Voltage: <span id="voltage" class="font-bold">0</span> V<br>
             Current: <span id="current" class="font-bold">0</span> A<br>
             Power: <span id="power" class="font-bold">0</span> W<br>
             Resistance: <span id="resistance" class="font-bold">0</span> Ω
-        </div>
+        </div>        
+        <div id="component-info" class="mb-4 p-3 bg-white border rounded shadow text-sm">
+            <h2 class="font-semibold mb-2">Component Info</h2>
+            <div class="mb-1">
+              <label class="block text-gray-700 font-medium">Name</label>
+              <input type="text" id="comp-name" class="w-full p-1 border rounded text-gray-800 font-bold" disabled>
+            </div>
+            <div class="mb-1">
+              <label class="block text-gray-700">Voltage (V)</label>
+              <input type="number" id="comp-voltage" class="w-full p-1 border rounded" onchange="updateComponentProperty('voltage')">
+            </div>
+            <div class="mb-1">
+              <label class="block text-gray-700">Current (A)</label>
+              <input type="number" id="comp-current" class="w-full p-1 border rounded" onchange="updateComponentProperty('current')">
+            </div>
+            <div class="mb-1">
+              <label class="block text-gray-700">Resistance (Ω)</label>
+              <input type="number" id="comp-resistance" class="w-full p-1 border rounded" onchange="updateComponentProperty('resistance')">
+            </div>
+          </div>
+          
         <div id="timer" class="mt-2 text-sm">Elapsed Time: <span id="elapsed">0</span> s</div>
         <div class="mt-4 p-2 bg-gray-300 border-t border-gray-300 text-sm text-gray-700 rounded-md">
           <h2 class="font-semibold mb-1">Instructions</h2>
@@ -141,6 +173,7 @@
             <li>Select a component to move or delete it.</li>
             <li>Use the top toolbar to run the simulation.</li>
             <li>Save or load circuits using the toolbar options.</li>
+            <li>Save and load buttons use local storage. </li>
           </ul>
         </div>
       </div>
@@ -148,58 +181,58 @@
     <div id="right-panel" class="w-64 bg-gray-200 p-4 border-l border-gray-300 overflow-y-auto">
       <details class="mb-2"><summary class="font-bold cursor-pointer">Power Sources</summary>
         <div class="grid grid-cols-2 gap-2 mt-2">
-            <div class="component bg-gray-300" data-type="battery" title="Battery">
-                <svg width="40" height="40"><rect x="10" y="10" width="20" height="20" fill="#888"/><text x="15" y="25" fill="white">+</text><text x="25" y="25" fill="white">-</text></svg>
+            <div class="component bg-gray-300" data-type="Battery" title="Battery">
+                <svg width="40" height="40"><rect x="10" y="10" width="30" height="20" fill="#888"/><text x="15" y="25" fill="white">+</text><text x="28" y="23" fill="white">-</text></svg>
             </div>
         </div>
     </details>
     <details class="mb-2"><summary class="font-bold cursor-pointer">Passive Components</summary>
         <div class="grid grid-cols-2 gap-2 mt-2">
-            <div class="component bg-gray-300" data-type="resistor" title="Resistor">
+            <div class="component bg-gray-300" data-type="Resistor" title="Resistor">
                 <svg width="40" height="40"><rect x="10" y="15" width="20" height="10" fill="#888"/></svg>
             </div>
-            <div class="component bg-gray-300" data-type="capacitor" title="Capacitor">
+            <div class="component bg-gray-300" data-type="Capacitor" title="Capacitor">
                 <svg width="40" height="40"><line x1="20" y1="10" x2="20" y2="30" stroke="#888" stroke-width="2"/><line x1="15" y1="20" x2="25" y2="20" stroke="#888" stroke-width="2"/></svg>
             </div>
-            <div class="component bg-gray-300" data-type="inductor" title="Inductor">
+            <div class="component bg-gray-300" data-type="Inductor" title="Inductor">
                 <svg width="40" height="40"><path d="M10 20 Q15 10 20 20 Q25 30 30 20" stroke="#888" stroke-width="2" fill="none"/></svg>
             </div>
         </div>
     </details>
     <details class="mb-2"><summary class="font-bold cursor-pointer">Switches & Controls</summary>
         <div class="grid grid-cols-2 gap-2 mt-2">
-            <div class="component bg-gray-300" data-type="switch" title="Switch">
+            <div class="component bg-gray-300" data-type="Switch" title="Switch">
                 <svg width="40" height="40"><line x1="10" y1="20" x2="20" y2="20" stroke="#888" stroke-width="2"/><line x1="20" y1="20" x2="30" y2="10" stroke="#888" stroke-width="2"/></svg>
             </div>
-            <div class="component bg-gray-300" data-type="button" title="Button">
+            <div class="component bg-gray-300" data-type="Button" title="Button">
                 <svg width="40" height="40"><rect x="10" y="10" width="20" height="20" fill="#888" rx="5"/></svg>
             </div>
         </div>
     </details>
     <details class="mb-2"><summary class="font-bold cursor-pointer">Output Devices</summary>
         <div class="grid grid-cols-2 gap-2 mt-2">
-            <div class="component bg-gray-300" data-type="led" title="LED">
+            <div class="component bg-gray-300" data-type="Led" title="LED">
                 <svg width="40" height="40"><circle cx="20" cy="20" r="10" fill="#888"/><path d="M20 10 L25 5 M20 10 L15 5" stroke="red" stroke-width="2"/></svg>
             </div>
         </div>
     </details>
     <details class="mb-2"><summary class="font-bold cursor-pointer">Integrated Components</summary>
         <div class="grid grid-cols-2 gap-2 mt-2">
-            <div class="component bg-gray-300" data-type="arduino" title="Arduino">
+            <div class="component bg-gray-300" data-type="Arduino" title="Arduino">
                 <svg width="40" height="40"><rect x="5" y="5" width="30" height="30" fill="#888"/><rect x="10" y="10" width="5" height="5" fill="white"/></svg>
             </div>
         </div>
     </details>
     <details class="mb-2"><summary class="font-bold cursor-pointer">Sensors</summary>
         <div class="grid grid-cols-2 gap-2 mt-2">
-            <div class="component bg-gray-300" data-type="sensor" title="Sensor">
+            <div class="component bg-gray-300" data-type="Sensor" title="Sensor">
                 <svg width="40" height="40"><circle cx="20" cy="20" r="15" fill="#888"/><circle cx="20" cy="20" r="5" fill="white"/></svg>
             </div>
         </div>
     </details>
     <details class="mb-2"><summary class="font-bold cursor-pointer">Prototyping Tools</summary>
         <div class="grid grid-cols-2 gap-2 mt-2">
-            <div class="component bg-gray-300" data-type="breadboard" title="Breadboard">
+            <div class="component bg-gray-300" data-type="Breadboard" title="Breadboard">
                 <svg width="40" height="40"><rect x="5" y="5" width="30" height="30" fill="#888"/><rect x="10" y="10" width="20" height="5" fill="white"/></svg>
             </div>
         </div>
@@ -222,7 +255,8 @@
         let wires = [];
         let selectedPoint = null;
         let selectedComponent = null;
-        let startTime = null;
+        let startTime = 0;
+        let timerInterval = null;
 
         // Make components draggable from right panel to canvas
         interact('.component').draggable({
@@ -233,6 +267,7 @@
                 clone.innerHTML = event.target.innerHTML;
                 clone.style.left = `${event.clientX - 30}px`;
                 clone.style.top = `${event.clientY - 30}px`;
+                clone.dataset.type = type;
                 canvas.appendChild(clone);
 
                 const point1 = document.createElement('div');
@@ -268,16 +303,34 @@
                 }
             });
         }
+   
+
+        function showComponentInfo(component) {
+            selectedComponent = component;
+            document.getElementById('comp-name').value = component.dataset.type || 'Unknown';
+            document.getElementById('comp-voltage').value = component.dataset.voltage || 0;
+            document.getElementById('comp-current').value = component.dataset.current || 0;
+            document.getElementById('comp-resistance').value = component.dataset.resistance || 0;
+        }
+
+        function updateComponentProperty(prop) {
+            if (!selectedComponent) return;
+            const value = document.getElementById(`comp-${prop}`).value;
+            selectedComponent.dataset[prop] = value;
+        }
 
         // Add selection listener
         function addSelectionListener(element) {
-            element.addEventListener('click', () => {
-                if (selectedComponent) selectedComponent.classList.remove('selected');
-                selectedComponent = element;
-                element.classList.add('selected');
-            });
+        element.addEventListener('click', () => {
+            if (selectedComponent) selectedComponent.classList.remove('selected');
+            selectedComponent = element;
+            element.classList.add('selected');
+            showComponentInfo(element);
+             });
         }
 
+
+        
         // Handle connections
         function addConnectionListeners(point1, point2) {
             [point1, point2].forEach(point => {
@@ -344,18 +397,25 @@
             });
         }
 
-        // Start simulation
         function startSimulation() {
-            if (!isSimulating) {
-                isSimulating = true;
-                startTime = Date.now();
-                updateSimulation();
+        if (!isSimulating) {
+            isSimulating = true;
+            startTime = Date.now();
+
+            // Start updating the elapsed time
+            timerInterval = setInterval(() => {
+                const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+                document.getElementById('elapsed').textContent = elapsedSeconds;
+            }, 1000);
+
+            updateSimulation(); // run any other simulation logic you have
             }
         }
 
-        // Stop simulation
         function stopSimulation() {
             isSimulating = false;
+            clearInterval(timerInterval);
+            timerInterval = null;
         }
 
         // Change mode
