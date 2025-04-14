@@ -376,6 +376,9 @@
         let selectedComponent = null;
         let startTime = 0;
         let timerInterval = null;
+        let wirePreview = null;
+        let mouseMoveHandler = null;
+
 
         // Make components draggable from right panel to canvas
         interact('.component').draggable({
@@ -521,29 +524,27 @@
         
         // Handle connections
         function addConnectionListeners(...points) {
-    points.forEach(point => {
-        point.addEventListener('click', (e) => {
-            e.stopPropagation();
+        points.forEach(point => {
+            point.addEventListener('click', (e) => {
+                e.stopPropagation();
 
-            if (!selectedPoint) {
-                selectedPoint = point;
-                point.style.background = 'blue';
-
-                // Start drawing wire preview
-                startWirePreview(point);
-            } else if (selectedPoint !== point) {
-                drawWire(selectedPoint, point);
-                selectedPoint.style.background = 'red';
-                selectedPoint = null;
-
-                // Stop preview
-                stopWirePreview();
-
-                if (isSimulating) updateSimulation();
+                if (!selectedPoint) {
+                    // First point clicked
+                    selectedPoint = point;
+                    point.style.background = 'blue';
+                    startWirePreview(point); 
+                } else if (selectedPoint !== point) {
+                    // Second point clicked
+                    drawWire(selectedPoint, point);
+                    selectedPoint.style.background = 'red';
+                    selectedPoint = null;
+                    stopWirePreview(); 
+                    if (isSimulating) updateSimulation();
+                            }
+                      });
+                 });
             }
-        });
-    });
-}
+
 
 
         // Draw wire between two points
@@ -594,6 +595,48 @@
             });
         }
 
+        // Start wire preview
+        function startWirePreview(startPoint) {
+        if (wirePreview) return;
+
+        wirePreview = document.createElement('div');
+        wirePreview.className = 'wire';
+        canvas.appendChild(wirePreview);
+
+        mouseMoveHandler = (e) => {
+            const canvasRect = canvas.getBoundingClientRect();
+            const startRect = startPoint.getBoundingClientRect();
+
+            const x1 = startRect.left - canvasRect.left + startRect.width / 2;
+            const y1 = startRect.top - canvasRect.top + startRect.height / 2;
+            const x2 = e.clientX - canvasRect.left;
+            const y2 = e.clientY - canvasRect.top;
+
+            const length = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+            const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+
+            wirePreview.style.width = `${length}px`;
+            wirePreview.style.left = `${x1}px`;
+            wirePreview.style.top = `${y1}px`;
+            wirePreview.style.transform = `rotate(${angle}deg)`;
+        };
+
+        window.addEventListener('mousemove', mouseMoveHandler);
+        }
+
+        // Stop wire preview
+        function stopWirePreview() {
+        if (wirePreview) {
+            wirePreview.remove();
+            wirePreview = null;
+        }
+        if (mouseMoveHandler) {
+            window.removeEventListener('mousemove', mouseMoveHandler);
+            mouseMoveHandler = null;
+             }
+        }
+
+        // Start simulation
         function startSimulation() {
         if (!isSimulating) {
             isSimulating = true;
@@ -670,38 +713,59 @@
 
         // Load circuit
         function loadCircuit() {
-            const saved = localStorage.getItem('circuit');
-            if (saved) {
-                newCircuit();
-                const circuit = JSON.parse(saved);
-                circuit.forEach(data => {
-                    const clone = document.createElement('div');
-                    clone.className = 'draggable';
-                    clone.innerHTML = document.querySelector(`.component[data-type="${data.type}"]`).innerHTML;
-                    clone.style.left = data.x;
-                    clone.style.top = data.y;
-                    canvas.appendChild(clone);
+        const saved = localStorage.getItem('circuit');
+        if (saved) {
+            newCircuit();
+            const circuit = JSON.parse(saved);
+            circuit.forEach(data => {
+                const clone = document.createElement('div');
+                clone.className = 'draggable';
+                clone.innerHTML = document.querySelector(`.component[data-type="${data.type}"]`).innerHTML;
+                clone.style.left = data.x;
+                clone.style.top = data.y;
+                clone.dataset.type = data.type;
+                canvas.appendChild(clone);
 
-                    const point1 = document.createElement('div');
-                    point1.className = 'connection-point';
-                    point1.style.left = '0px';
-                    point1.style.top = '25px';
-                    clone.appendChild(point1);
+                // Create all 4 connection points
+                const topPoint = document.createElement('div');
+                topPoint.className = 'connection-point';
+                topPoint.style.top = '0px';
+                topPoint.style.left = '26px';
+                clone.appendChild(topPoint);
 
-                    const point2 = document.createElement('div');
-                    point2.className = 'connection-point';
-                    point2.style.right = '0px';
-                    point2.style.top = '25px';
-                    clone.appendChild(point2);
+                const bottomPoint = document.createElement('div');
+                bottomPoint.className = 'connection-point';
+                bottomPoint.style.bottom = '0px';
+                bottomPoint.style.left = '26px';
+                clone.appendChild(bottomPoint);
 
-                    components.push({ element: clone, type: data.type, points: [point1, point2] });
-                    makeDraggable(clone);
-                    addConnectionListeners(point1, point2);
-                    addSelectionListener(clone);
+                const leftPoint = document.createElement('div');
+                leftPoint.className = 'connection-point';
+                leftPoint.style.left = '0px';
+                leftPoint.style.top = '25px';
+                clone.appendChild(leftPoint);
+
+                const rightPoint = document.createElement('div');
+                rightPoint.className = 'connection-point';
+                rightPoint.style.right = '0px';
+                rightPoint.style.top = '25px';
+                clone.appendChild(rightPoint);
+
+                // Push to components array
+                components.push({
+                    element: clone,
+                    type: data.type,
+                    points: [topPoint, bottomPoint, leftPoint, rightPoint]
                 });
-                alert('Circuit loaded!');
-            }
-        }
+
+                makeDraggable(clone);
+                addConnectionListeners(topPoint, bottomPoint, leftPoint, rightPoint);
+                addSelectionListener(clone);
+            });
+            alert('Circuit loaded!');
+             }
+         }   
+
 
         // Delete selected component
         function deleteSelected() {
