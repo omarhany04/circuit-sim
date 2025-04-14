@@ -80,6 +80,7 @@
         }
         .selected {
             border: 3px solid blue;
+            box-shadow: 0 0 4px blue;
         }
         .connection-point {
             width: 8px;
@@ -95,6 +96,12 @@
             height: 2px;
             transform-origin: 0 0;
         }
+        .wire.selected {
+        background: blue;
+        height: 2px;
+        }
+
+
         #feedback {
             margin-top: 20px;
             font-size: 14px;
@@ -378,7 +385,7 @@
         let timerInterval = null;
         let wirePreview = null;
         let mouseMoveHandler = null;
-
+        let selectedWire = null;
 
         // Make components draggable from right panel to canvas
         interact('.component').draggable({
@@ -513,15 +520,18 @@
         // Add selection listener
         function addSelectionListener(element) {
         element.addEventListener('click', () => {
-            if (selectedComponent) selectedComponent.classList.remove('selected');
-            selectedComponent = element;
-            element.classList.add('selected');
-            showComponentInfo(element);
-             });
+        if (selectedComponent) selectedComponent.classList.remove('selected');
+        if (selectedWire) {
+            selectedWire.classList.remove('selected');
+            selectedWire = null;
+        }
+        selectedComponent = element;
+        element.classList.add('selected');
+        showComponentInfo(element);
+            });
         }
 
 
-        
         // Handle connections
         function addConnectionListeners(...points) {
         points.forEach(point => {
@@ -570,6 +580,18 @@
             wire.style.top = `${y1}px`;
             wire.style.transform = `rotate(${angle}deg)`;
 
+            // Make wire selectable
+            wire.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (selectedComponent) {
+                        selectedComponent.classList.remove('selected');
+                        selectedComponent = null;
+                    }
+
+                    wires.forEach(w => w.element.classList.remove('selected'));
+                    wire.classList.add('selected');
+                    selectedWire = wire; 
+                });
             wires.push({ element: wire, start: startPoint, end: endPoint });
         }
 
@@ -769,18 +791,27 @@
 
         // Delete selected component
         function deleteSelected() {
-            if (selectedComponent) {
-                const index = components.findIndex(c => c.element === selectedComponent);
-                if (index !== -1) {
-                    components.splice(index, 1);
-                    selectedComponent.remove();
-                    wires = wires.filter(w => w.start.parentElement !== selectedComponent && w.end.parentElement !== selectedComponent);
-                    wires.forEach(w => { if (!w.element.parentElement) w.element.remove(); });
-                    selectedComponent = null;
-                    if (isSimulating) updateSimulation();
+        if (selectedWire) {
+            wires = wires.filter(w => w.element !== selectedWire);
+            selectedWire.remove();
+            selectedWire = null;
+            if (isSimulating) updateSimulation();
+            return;
+        }
+
+        if (selectedComponent) {
+            const index = components.findIndex(c => c.element === selectedComponent);
+            if (index !== -1) {
+                components.splice(index, 1);
+                selectedComponent.remove();
+                wires = wires.filter(w => w.start.parentElement !== selectedComponent && w.end.parentElement !== selectedComponent);
+                wires.forEach(w => { if (!w.element.parentElement) w.element.remove(); });
+                selectedComponent = null;
+                if (isSimulating) updateSimulation();
                 }
             }
         }
+
 
         // Rotate selected component
         function rotateSelected() {
